@@ -87,6 +87,9 @@ module.exports = {
             .sort({
               createdAt: 'desc'
             })
+            // the latest version maybe has no assets, for example
+            // the moment between creating a version and uploading assets,
+            // so find more than 1 version and use the one containing assets.
             .limit(100)
             .populate('assets', assetOptions)
             .then(function(versions) {
@@ -94,13 +97,16 @@ module.exports = {
                 return resolve();
               }
 
+              // sort versions by `name` instead of `createdAt`,
+              // an lower version could be deleted then be created again,
+              // thus it has newer `createdAt`.
+              versions = versions.sort(UtilityService.compareVersion);
               var version = versions[0];
-              if (platform){
-                for (var i = 0; i < versions.length; i++){
-                  if (versions[i].assets.length > 0 && versions[i].assets[0].platform == platform){
-                    version = versions[i];
-                    break;
-                  }
+              var version;
+              for (var i = 0; i < versions.length; i++) {
+                version = versions[i];
+                if (version.assets && version.assets.length) {
+                  break;
                 }
               }
 
